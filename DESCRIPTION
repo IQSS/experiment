@@ -1,0 +1,13 @@
+Package: experiment
+Version: 1.0-1
+Date: 2007-07-15
+Title: experiment
+Author: Kosuke Imai <kimai@princeton.edu>,
+        Gary King <king@harvard.edu>,
+Maintainer: Kosuke Imai <kimai@princeton.edu>
+Depends: R (>= 2.0.0), MASS
+Description: experiments
+License: GPL version 2 or newer
+URL: undefined
+Suggests: undefined
+Packaged: Sun Jul 15 22:42:26 2007; king

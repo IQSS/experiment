@@ -1,0 +1,612 @@
+\documentclass[12pt]{article}
+%\includeonlyframes{c1,c2,c3,c4,c5,c6,c7,c8,c9}
+\usepackage{dcolumn}
+\newcolumntype{.}{D{.}{.}{-1}}
+\newcolumntype{d}[1]{D{.}{.}{#1}}
+\usepackage{fullpage, enumerate}
+\usepackage{amsmath, amssymb, amsfonts, txfonts}
+\newcommand{\SP}{\emph{SP}}
+
+\title{\emph{Seguro Popular} Causal Inference Model}
+\author{Ryan T. Moore}
+\begin{document}
+\maketitle
+
+\section{Definitions}
+
+Where $i$ indexes individuals, let
+\begin{itemize}
+\item $y_i$ be the outcome of interest,
+\item $t_i \in \{c,n,a \}$ be the individual's compliance
+type: \underline{c}omplier, \underline{n}ever-taker, or
+\underline{a}lways-taker, 
+\item $X_i$ be the $1\times k$ row vector of individual covariates in the
+outcome model, 
+\item $W_i$ be the $1 \times p$ row vector of individual
+covariates in the compliance type model,
+\item $z_i$ be the individual's assignment to treatment, and
+\item $d_i$ be the individual's receipt of treatment.
+\end{itemize}
+
+\section{Model}
+
+We assume that $X_i$, $W_i$, and $z_i$ are fixed and model
+
+\begin{eqnarray*}
+  y_i & \stackrel{ind}{\sim} & \text{Bernoulli}(\pi_i) \\
+  \pi_i & = & \frac{1}{1+e^{-X_i \beta_{t_iz_i}}} \equiv \Lambda(X_i, \beta_{t_i z_i})\\
+  t_i & \stackrel{ind}{\sim}&\text{Multinomial}(\omega_{ic},\omega_{in},\omega_{ia}) \\
+  \omega_{it} & = & \frac{e^{W_i \psi_t}}{\sum_{\nu \in \{c,n,a\}}
+    e^{W_i \psi_{\nu}}} \equiv \Psi(t, W_i, \psi_c, \psi_n, \psi_a)
+\end{eqnarray*}
+
+We impose two constraints.  First, for identification, we
+constrain $\psi_n$ be a vector of zeros, and so simplify the notation
+for $\omega_{it}$ as follows:
+
+\begin{eqnarray*}
+\omega_{it} & = & \frac{e^{W_i \psi_t}}{1 + \sum_{\nu \in \{c,a\}}
+e^{W_i \psi_{\nu}}} \equiv \Psi(t, W_i, \psi_c, \psi_a)
+\end{eqnarray*}
+
+where the numerator equals 1 if $t=n$.
+
+Second, we constrain $t_i$ based on the four possible combinations of
+observed $z_i,d_i$.  Specifically,
+
+\begin{eqnarray*}
+&& \textrm{if $z_i=0$ and $d_i=0$, then $t_i \in \{c,n\}$}  \\
+&& \textrm{if $z_i=1$ and $d_i=1$, then $t_i \in \{c,a\}$}  \\
+&& \textrm{if $z_i=0$ and $d_i=1$, then $t_i = a$} \\
+&& \textrm{if $z_i=1$ and $d_i=0$, then $t_i = n$} 
+\end{eqnarray*}
+
+In other words, the probability that $t_i=t$ is given by Table
+\ref{pr.t}:
+
+\begin{table}[h!]
+\begin{center}
+\begin{tabular}{lccc}
+			& c & n & a \\ \hline
+$z_i=0$ and $d_i=0$ &  $\frac{\omega_{ic}}{\omega_{ic} +
+\omega_{in}}$ & $\frac{\omega_{in}}{\omega_{ic} +\omega_{in}}$ &  0 \\
+$z_i=1$ and $d_i=1$ &  $\frac{\omega_{ic}}{\omega_{ic} +
+\omega_{ia}}$ & 0 & $\frac{\omega_{ia}}{\omega_{ic} +\omega_{ia}}$ \\
+$z_i=0$ and $d_i=1$ &  0 & 0 & 1 \\
+$z_i=1$ and $d_i=0$ &  0 & 1 & 0 \\ \hline
+\end{tabular}
+\end{center}
+\caption{Pr($t_i=t|z_i,d_i$).  Conditional probability of [column]
+given [row].}
+\label{pr.t}
+\end{table}
+
+%\begin{displaymath} 
+%t_i  =  \left\{ \begin{array}{ll}
+%\textrm{$c$ or $n$ with prob}(\frac{\omega_{ic}}{\omega_{ic} +
+%\omega_{in}}, \frac{\omega_{in}}{\omega_{ic} + \omega_{in}}) &
+%\textrm{if $z_i=0, d_i=0$}  \\  
+%\textrm{$c$ or $a$ with prob}(\frac{\omega_{ic}}{\omega_{ic} +
+%\omega_{ia}}, \frac{\omega_{ia}}{\omega_{ic} + \omega_{ia}}) &
+%\textrm{if $z_i=1, d_i=1$}  \\  
+%a & \textrm{if $z_i=0, d_i=1$} \\
+%n & \textrm{if $z_i=1, d_i=0$} \end{array} \right.
+%\end{displaymath}
+
+\section{Quantities of Interest}
+
+Interest is in the sample average treatment effect (SATE) for each of
+the three compliance types.  For each compliance type, we take the
+avarage difference between individuals' outcomes under assignment to
+encouragement to receive treatment with outcomes under assignment to no
+encouragement.  That is, where $y_i(z_i=1)$ is the individual's
+outcome under assignment to encouragement and $y_i(z_i=0)$ is the
+individual's outcome under assignment to no encouragement, we
+calculate for each compliance type $t$ of size $N_t$
+
+\begin{eqnarray*}
+SATE_t & = & \frac{1}{N_t} \sum_{i \in \{i:t_i= t\}} y_i(z_i=1) - y_i(z_i=0)
+\end{eqnarray*}
+
+For compliers, we are estimating the combined effect of residing in a
+cluster \emph{assigned} to SP and of \emph{enrolling} in SP.  For
+never-takers and always-takers, we are estimating only the effect of
+residing in a cluster \emph{assigned} to SP.
+
+Since $t_i$ is not known for two of the $z_i,d_i$ combinations, we
+draw $t_i$ for those observations from the model.  That is, 
+for  $z_i=0,d_i=0$ we draw the unknown $t_i$ from $\{c,n\}$ with
+probabilities $\frac{\omega_{ic}}{\omega_{ic} + \omega_{in}}$ and
+$1-\frac{\omega_{ic}}{\omega_{ic} + \omega_{in}}$ and for
+$z_i=1,d_i=1$ we draw the unknown $t_i$ from $\{c,a\}$ with
+probabilities $\frac{\omega_{ic}}{\omega_{ic} + \omega_{ia}}$ and
+$1-\frac{\omega_{ic}}{\omega_{ic} + \omega_{ia}}$.  These
+probabilities are reflected in Table \ref{pr.t}.
+
+Since only one of $z_i=1$ and $z_i=0$ is observed, we estimate $y_i$
+under the other condition by drawing $y_i$ from the model.  That is,
+we draw the unobserved $y_i$, where $\bar{z}_i$ is the unobserved
+condition, from
+
+\begin{eqnarray*}
+y_i & \stackrel{ind}{\sim} & Bernoulli(\pi_i) \\
+\pi_i & = & \Lambda(X_i, \beta_{t_i \bar{z}_i})\\
+\end{eqnarray*}
+
+
+
+\section{Complete Data Likelihood}
+
+If both $y_i$, the outcome of interest, and $t_i$, the compliance
+type, were observed for every individual, we could write the joint
+complete data likelihood as
+
+\begin{eqnarray*}
+p(y, t | \beta, \psi) & = & p(y|t, \beta, \psi)p(t| \beta, \psi) \\
+& = & p(y|t, \beta)p(t| \psi) 
+\end{eqnarray*}
+
+These two components are represented by the two parts of the
+likelihood, 
+
+\begin{eqnarray*}
+p(y|t, \beta) & = & L(\pi_i | y_i, t_i) = \pi_i^{y_i}
+(1-\pi_i)^{(1-y_i)} \\ & = & \Lambda(X_i,\beta_{t_iz_i})^{y_i}
+\left(1- \Lambda(X_i,\beta_{t_iz_i}) \right)^{1-y_i} \\
+p(t|\psi) & = & L(\omega_{ic}, \omega_{in}, \omega_{ia} | t_i) =
+\omega_{ic}^{I(t_i=c)}\omega_{in}^{I(t_i=n)}\omega_{ia}^{I(t_i=a)} \\
+& = & \Psi(c,W_i,\psi_c, \psi_a)^{I(t_i=c)}\Psi(n,W_i,\psi_c, \psi_a)^{I(t_i=n)} \Psi(a,W_i,\psi_c, \psi_a)^{I(t_i=a)} 
+\end{eqnarray*}
+
+For observation $i$, the complete likelihood contribution is then
+\begin{eqnarray*}
+L_{comp}(\beta_{t_iz_i}, \psi_c, \psi_a | y_i, t_i) & = & 
+\Lambda(X_i,\beta_{t_iz_i})^{y_i}
+\left(1- \Lambda(X_i,\beta_{t_iz_i}) \right)^{1-y_i} 
+\Psi(t_i, W_i, \psi_c, \psi_a)
+\end{eqnarray*}
+
+For the $N$ observations, the complete likelihood can be written
+
+\begin{eqnarray*}
+L_{comp} & = & \prod_{i=1}^N  \Lambda(X_i,\beta_{t_iz_i})^{y_i}
+\left(1- \Lambda(X_i,\beta_{t_iz_i}) \right)^{1-y_i} 
+\Psi(t_i, W_i, \psi_c, \psi_a)
+\end{eqnarray*}
+
+Partitioning the data into compliance type groups, this can be expressed
+
+\begin{eqnarray*}
+L_{comp} & = & \prod_{i \in \{i:t_i = c\}}
+\Lambda(X_i,\beta_{cz_i})^{y_i}
+\left(1- \Lambda(X_i,\beta_{cz_i}) \right)^{1-y_i} 
+\Psi(c, W_i, \psi_c, \psi_a)  \\
+& \times & \prod_{i \in \{i:t_i = n\}} \Lambda(X_i,\beta_{nz_i})^{y_i}
+\left(1- \Lambda(X_i,\beta_{nz_i}) \right)^{1-y_i} 
+\Psi(n, W_i, \psi_c, \psi_a) \\
+& \times & \prod_{i \in \{i:t_i = a\}}
+\Lambda(X_i,\beta_{az_i})^{y_i} \left(1-
+\Lambda(X_i,\beta_{az_i}) \right)^{1-y_i}
+\Psi(a, W_i, \psi_c, \psi_a) 
+\end{eqnarray*}
+
+We can then write the complete data log likelihood as
+
+\begin{eqnarray*}
+\log(L_{comp}) & = & \sum_{i \in \{i:t_i = c\}}
+y_i \log(\Lambda(X_i,\beta_{cz_i})) +
+(1-y_i) \log(1- \Lambda(X_i,\beta_{cz_i}) +
+\log(\Psi(c, W_i, \psi_c, \psi_a))  \\
+& + & \sum_{i \in \{i:t_i = n\}} y_i \log(\Lambda(X_i,\beta_{nz_i})) +
+(1-y_i) \log(1- \Lambda(X_i,\beta_{nz_i}) +
+\log(\Psi(n, W_i, \psi_c, \psi_a)) \\
+& + & \sum_{i \in \{i:t_i = a\}}
+y_i \log(\Lambda(X_i,\beta_{az_i})) +  (1-y_i) \log(1-
+\Lambda(X_i,\beta_{az_i})) + \log(\Psi(a, W_i, \psi_c, \psi_a))
+\end{eqnarray*}
+
+Computationally, we implement this by making three substitutions:
+
+\begin{eqnarray*}
+\log (\Lambda(X_i,\beta_{t_iz_i})) & = & \log
+\frac{e^{X_i\beta_{t_iz_i}}}{1+ e^{X_i\beta_{t_iz_i}}} =
+X_i\beta_{t_iz_i} - \log(1+ e^{X_i\beta_{t_iz_i}}) \\
+\log(1-\Lambda(X_i,\beta_{t_iz_i})) 
+& = & \log \frac{e^{-X_i\beta_{t_iz_i}}}{1+ e^{-X_i\beta_{t_iz_i}}} =
+-X_i\beta_{t_iz_i} - \log(1+ e^{-X_i\beta_{t_iz_i}}) \\
+\log (\Psi(t, W_i, \psi_c,\psi_a)) 
+& = & \log \frac{e^{W_i \psi_t}}{1+\sum_{\nu \in \{c,a\}} e^{W_i
+\psi_{\nu}}} = W_i \psi_t - \log (1+\sum_{\nu \in \{c,a\}} e^{W_i
+\psi_{\nu}})
+\end{eqnarray*}
+
+\section{Observed Data Likelihood}
+
+Let $d_i$ be the received treatment for unit $i$. 
+
+We begin by noting that the observed data likelihood for each
+individual is the complete data likelihood summed over all possible
+compliance types:
+
+\begin{eqnarray*}
+p(y_i | \beta, \psi) & = & L_{obs}(\beta_{tz_i},\psi_c,\psi_a | y_i) \\ 
+& = & \sum_{t \in \{c,n,a\}} L_{comp} (\beta_{tz_i},\psi_c,\psi_a | y_i,
+t)\delta_{z_i d_i t}  \\
+& = & \sum_{t \in \{c,n,a\}} p(y_i,t | \beta, \psi) \delta_{z_i d_i t} 
+\end{eqnarray*}
+
+where $\delta_{z_i d_i t} = 1$ if $t_i = t$ has nonzero probability
+given the observed $z_i d_i$ combination, and  $\delta_{z_i d_i t} =
+0$ otherwise.  More explicitly, 
+
+\begin{eqnarray*}
+\delta_{z_i d_i t} & = & \left\{ \begin{array}{ll} 
+1 & \textrm{if $z_i = 0, d_i =0, t=c$} \\ 
+1 & \textrm{if $z_i = 0, d_i =0, t=n$} \\ 
+1 & \textrm{if $z_i = 1, d_i =1, t=c$} \\ 
+1 & \textrm{if $z_i = 1, d_i =1, t=a$} \\ 
+1 & \textrm{if $z_i = 1, d_i =0, t=n$} \\ 
+1 & \textrm{if $z_i = 0, d_i =1, t=a$} \\ 
+0 & \mathrm{otherwise} 
+\end{array} \right.
+\end{eqnarray*}
+
+Equivalently, since we do not observe $t_i$ for all units, we split
+the sample into four groups based on the four $(z_i,d_i)$
+combinations and write the observed likelihood as
+
+\begin{eqnarray*}
+L_{obs} & = & \prod_{i \in \{i:z_i=0,d_i=0\}} \left[
+\Lambda(X_i,\beta_{c0})^{y_i} (1-\Lambda(X_i,\beta_{c0}))^{1-y_i}
+\Psi(c, W_i, \psi_c,\psi_a) \right. \\
+& & \qquad \left. + \Lambda(X_i,\beta_{n0})^{y_i}
+(1-\Lambda(X_i,\beta_{n0}))^{1-y_i} \Psi(n, W_i, \psi_c,\psi_a)) \right] \\
+& \times &  \prod_{i \in \{i:z_i=1,d_i=1\}} \left[
+\Lambda(X_i,\beta_{c1})^{y_i} (1-\Lambda(X_i,\beta_{c1}))^{y_i}
+\Psi(c, W_i, \psi_c,\psi_a) \right. \\ 
+& & \qquad \left. + \Lambda(X_i,\beta_{a1})^{y_i}
+(1-\Lambda(X_i,\beta_{a1}))^{1-y_i} \Psi(a, W_i, \psi_c,\psi_a)) \right] \\
+& \times &  \prod_{i \in \{i:z_i=1,d_i=0\}} \left[
+\Lambda(X_i,\beta_{n1})^{y_i} (1-\Lambda(X_i,\beta_{n1}))^{1-y_i}
+\Psi(n, W_i, \psi_c,\psi_a) \right] \\
+& \times &  \prod_{i \in \{i:z_i=0,d_i=1\}} \left[
+\Lambda(X_i,\beta_{a0})^{y_i} (1-\Lambda(X_i,\beta_{a0}))^{1-y_i}
+\Psi(a, W_i, \psi_c,\psi_a) \right]
+\end{eqnarray*}
+
+
+
+%   Since
+%we don't know $t_i$ for some $i$, we write the observed likelihood
+%(dropping the leading constant) as
+
+%\begin{eqnarray*}
+%L_{obs} & = & \prod_{i \in S(0,0,0)} \left[ \left(1-
+%\Lambda(X_i,\beta_{c0}) \right) \Psi(c, W_i, \psi_c,
+%, \psi_a) + \left(1- \Lambda(X_i,\beta_{n0}) \right)
+%\Psi(n, W_i, \psi_c, \psi_a) \right]\\
+%& \times & \prod_{i \in S(0,0,1)} \left[ \Lambda(X_i,\beta_{c0})
+%\Psi(c, W_i, \psi_c, \psi_a) + \Lambda(X_i,\beta_{n0})
+%\Psi(n, W_i, \psi_c, \psi_a) \right]\\
+%& \times & \prod_{i \in S(1,0,0)} \left[  \left(1-
+%\Lambda(X_i,\beta_{n1}) \right) \Psi(n, W_i, \psi_c, \psi_a) \right]\\
+%%& \times & \prod_{i \in S(1,0,1)} \left[ \Lambda(X_i,\beta_{n1})
+%\Psi(n, W_i, \psi_c, \psi_a) \right]\\
+%& \times & \prod_{i \in S(0,1,0)} \left[  \left(1-
+%\Lambda(X_i,\beta_{a0}) \right) \Psi(a, W_i, \psi_c, \psi_a) \right]\\
+%& \times & \prod_{i \in S(0,1,1)} \left[ \Lambda(X_i,\beta_{a0})
+%\Psi(a, W_i, \psi_c, \psi_a) \right]\\
+%& \times & \prod_{i \in S(1,1,0)} \left[ \left(1-
+%\Lambda(X_i,\beta_{c1}) \right) \Psi(c, W_i, \psi_c,
+%, \psi_a) + \left(1- \Lambda(X_i,\beta_{a1}) \right)
+%\Psi(a, W_i, \psi_c, \psi_a) \right]\\
+%& \times & \prod_{i \in S(1,1,1)} \left[ \Lambda(X_i,\beta_{c1})
+%\Psi(c, W_i, \psi_c, \psi_a) + \Lambda(X_i,\beta_{a1})
+%\Psi(a, W_i, \psi_c, \psi_a) \right]
+%\end{eqnarray*}
+
+\section{Observed log Likelihood}
+
+Taking the log of this four-factor likelihood yields
+
+\begin{eqnarray*}
+\log(L_{obs}) & = & \sum_{i \in \{i:z_i=0,d_i=0\}} \log \left[
+\Lambda(X_i,\beta_{c0})^{y_i}
+(1-\Lambda(X_i,\beta_{c0}))^{1-y_i}  \Psi(c, W_i,
+\psi_c,\psi_a) \right. \\
+& & \qquad \left. + \Lambda(X_i,\beta_{n0})^{y_i}
+(1-\Lambda(X_i,\beta_{n0})^{1-y_i} \Psi(n, W_i,
+\psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=1,d_i=1\}} \log \left[
+\Lambda(X_i,\beta_{c1})^{y_i}
+(1-\Lambda(X_i,\beta_{c1}))^{1-y_i}  \Psi(c, W_i,
+\psi_c,\psi_a) \right. \\
+& & \qquad \left. + \Lambda(X_i,\beta_{a1})^{y_i}
+(1-\Lambda(X_i,\beta_{a1})^{1-y_i} \Psi(a, W_i,
+\psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=1,d_i=0\}} \log \left[ \Lambda(X_i,\beta_{n1})^{y_i}
+(1-\Lambda(X_i,\beta_{n1})^{1-y_i} \Psi(n, W_i,
+\psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=0,d_i=1\}} \log \left[ \Lambda(X_i,\beta_{a0})^{y_i}
+(1-\Lambda(X_i,\beta_{a0})^{1-y_i} \Psi(a, W_i,
+\psi_c,\psi_a) \right] 
+\end{eqnarray*}
+
+The remainder of this section illustrates steps that simplify this log
+likelihood for algebraic legibility or computational implementation.  
+
+To simplify, we first split each term into $y_i =1$ and $y_i=0$
+groups.  Thus, for each term we define two $(z_i,d_i,y_i)$ groups.
+
+\begin{eqnarray*}
+\log(L_{obs}) & = & \sum_{i \in \{i:z_i=0,d_i=0,y_i=1\}} \log\left[
+\Lambda(X_i,\beta_{c0}) \Psi(c, W_i,
+\psi_c,\psi_a) + \Lambda(X_i,\beta_{n0}) \Psi(n,
+W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=0,d_i=0,y_i=0\}} \log\left[
+(1-\Lambda(X_i,\beta_{c0}))  \Psi(c, W_i,
+\psi_c,\psi_a) \right. \\
+&  & \qquad \qquad\qquad \qquad \qquad \qquad \left. +
+(1-\Lambda(X_i,\beta_{n0}) \Psi(n, W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=1\}} \log\left[
+\Lambda(X_i,\beta_{c1}) \Psi(c, W_i,
+\psi_c,\psi_a) + \Lambda(X_i,\beta_{a1}) \Psi(a,
+W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=0\}} \log\left[
+(1-\Lambda(X_i,\beta_{c1})) \Psi(c, W_i,
+\psi_c,\psi_a) \right. \\
+&  & \qquad \qquad\qquad \qquad \qquad \qquad \left. +
+(1-\Lambda(X_i,\beta_{a1})) \Psi(a, W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=1,d_i=0, y_i=1\}} \log\left[
+\Lambda(X_i,\beta_{n1}) \Psi(n, W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=1,d_i=0, y_i=0\}} \log\left[
+(1-\Lambda(X_i,\beta_{n1})) \Psi(n, W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=0,d_i=1, y_i=1\}} \log\left[ 
+\Lambda(X_i,\beta_{a0}) \Psi(a, W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=0,d_i=1, y_i=0\}} \log\left[ 
+(1-\Lambda(X_i,\beta_{a0})) \Psi(a, W_i, \psi_c,\psi_a) \right] 
+\end{eqnarray*}
+
+Next we simplify the log expressions in the last four terms:
+
+\begin{eqnarray*}
+\log(L_{obs}) & = & \sum_{i \in \{i:z_i=0,d_i=0,y_i=1\}} \log\left[
+\Lambda(X_i,\beta_{c0}) \Psi(c, W_i,
+\psi_c,\psi_a) + \Lambda(X_i,\beta_{n0}) \Psi(n,
+W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=0,d_i=0,y_i=0\}} \log\left[
+(1-\Lambda(X_i,\beta_{c0}))  \Psi(c, W_i,
+\psi_c,\psi_a) \right. \\
+&  & \qquad\qquad\qquad\qquad\qquad\qquad \left. + (1-\Lambda(X_i,\beta_{n0})
+\Psi(n, W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=1\}} \log\left[
+\Lambda(X_i,\beta_{c1}) \Psi(c, W_i,
+\psi_c,\psi_a) + \Lambda(X_i,\beta_{a1}) \Psi(a,
+W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=0\}} \log\left[
+(1-\Lambda(X_i,\beta_{c1})) \Psi(c, W_i,
+\psi_c,\psi_a) \right. \\
+&  & \qquad\qquad\qquad\qquad\qquad\qquad \left. + (1-\Lambda(X_i,\beta_{a1})) \Psi(a,
+W_i, \psi_c,\psi_a) \right] \\
+& + & \sum_{i \in \{i:z_i=1,d_i=0, y_i=1\}} \log(
+\Lambda(X_i,\beta_{n1})) + \log(\Psi(n, W_i, \psi_c,\psi_a)) \\
+& + & \sum_{i \in \{i:z_i=1,d_i=0, y_i=0\}}
+\log(1-\Lambda(X_i,\beta_{n1})) + \log( \Psi(n, W_i, \psi_c,\psi_a)) \\
+& + & \sum_{i \in \{i:z_i=0,d_i=1, y_i=1\}} \log(
+\Lambda(X_i,\beta_{a0})) + \log( \Psi(a, W_i, \psi_c,\psi_a)) \\
+& + & \sum_{i \in \{i:z_i=0,d_i=1, y_i=0\}}
+\log(1-\Lambda(X_i,\beta_{a0})) + \log( \Psi(a, W_i, \psi_c,\psi_a)) 
+\end{eqnarray*}
+
+[Here, we have the option of combining the $y_i=1$ and $y_i=0$
+components of the $\log(\Psi(\cdot))$ terms.]
+
+Next we make the three substitutions above:
+
+\begin{eqnarray*}
+\log (\Lambda(X_i,\beta_{t_iz_i})) & = & \log
+\frac{e^{X_i\beta_{t_iz_i}}}{1+ e^{X_i\beta_{t_iz_i}}} =
+X_i\beta_{t_iz_i} - \log(1+ e^{X_i\beta_{t_iz_i}}) \\
+\log(1-\Lambda(X_i,\beta_{t_iz_i})) 
+& = & \log \frac{e^{-X_i\beta_{t_iz_i}}}{1+ e^{-X_i\beta_{t_iz_i}}} =
+-X_i\beta_{t_iz_i} - \log(1+ e^{-X_i\beta_{t_iz_i}}) \\
+\log (\Psi(t, W_i, \psi_c,\psi_a)) 
+& = & \log \frac{e^{W_i \psi_t}}{1+\sum_{\nu \in \{c,a\}} e^{W_i
+\psi_{\nu}}} = W_i \psi_t - \log (1+\sum_{\nu \in \{c,a\}} e^{W_i
+\psi_{\nu}})
+\end{eqnarray*}
+
+%
+%
+%Next we simplify the last two sums. First we write each sum of three
+%terms as three sums:
+%
+%\begin{eqnarray*}
+%\log(L_{obs}) & = & \sum_{i \in \{i:z_i=0,d_i=0,y_i=1\}} \log\left[
+%\Lambda(X_i,\beta_{c0}) \Psi(c, W_i,
+%\psi_c,\psi_a) + \Lambda(X_i,\beta_{n0}) \Psi(n,
+%W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=0,d_i=0,y_i=0\}} \log(\left[
+%(1-\Lambda(X_i,\beta_{c0}))  \Psi(c, W_i,
+%\psi_c,\psi_a) \right. \\
+%& + & \qquad \left. (1-\Lambda(X_i,\beta_{n0})
+%\Psi(n, W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=1\}} \log\left[
+%\Lambda(X_i,\beta_{c1}) \Psi(c, W_i,
+%\psi_c,\psi_a) + \Lambda(X_i,\beta_{a1}) \Psi(a,
+%W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=0\}} \log\left[
+%(1-\Lambda(X_i,\beta_{c1})) \Psi(c, W_i,
+%\psi_c,\psi_a) \right. \\
+%& + & \qquad \left. (1-\Lambda(X_i,\beta_{a1})) \Psi(a,
+%W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=0\}} y_i \log (\Lambda(X_i,\beta_{n1}))
+%+ \sum_{i \in \{i:z_i=1,d_i=0\}} (1-y_i) \log(1-\Lambda(X_i,\beta_{n1})) \\
+%& + &  \sum_{i \in \{i:z_i=1,d_i=0\}} \log (\Psi(n, W_i, \psi_c,\psi_a)) \\
+%& + & \sum_{i \in \{i:z_i=0,d_i=1\}} y_i \log (\Lambda(X_i,\beta_{a0})) +
+%\sum_{i \in \{i:z_i=0,d_i=1\}} (1-y_i)\log(1-\Lambda(X_i,\beta_{a0})) \\
+%& + & \sum_{i \in \{i:z_i=0,d_i=1\}} \log(\Psi(a, W_i, \psi_c,\psi_a))
+%\end{eqnarray*}
+
+%For $z_i=1, d_i=0$ and $z_i=0, d_i=1$, the two $\log(\Psi(\cdot))$
+%terms are calculated the same way regardless of $y_i$.  However,
+%whether $y_i=1$ or $y_i=0$ determines which of the $\Lambda(\cdot)$
+%terms will be nonzero.  Thus, we split the first two terms within
+%$z_i=1, d_i=0$ and $z_i=0, d_i=1$ into $(z_i,d_i, y_i)$ groups:
+
+%\begin{eqnarray*}
+%log(L_{obs}) & = & \sum_{i \in \{i:z_i=0,d_i=0,y_i=1\}} log(\left[
+%\Lambda(X_i,\beta_{c0}) \Psi(c, W_i,
+%\psi_c,\psi_a) + \Lambda(X_i,\beta_{n0}) \Psi(n,
+%W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=0,d_i=0,y_i=0\}} log(\left[
+%(1-\Lambda(X_i,\beta_{c0}))  \Psi(c, W_i,
+%\psi_c,\psi_a) \right. \\
+%& + & \qquad \left. (1-\Lambda(X_i,\beta_{n0})
+%\Psi(n, W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=1\}} log(\left[
+%\Lambda(X_i,\beta_{c1}) \Psi(c, W_i,
+%\psi_c,\psi_a) + \Lambda(X_i,\beta_{a1}) \Psi(a,
+%W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=0\}} log(\left[
+%(1-\Lambda(X_i,\beta_{c1})) \Psi(c, W_i,
+%\psi_c,\psi_a) \right. \\ 
+%& + & \qquad \left. (1-\Lambda(X_i,\beta_{a1})) \Psi(a,
+%W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=0,y_i=1\}} \log (\Lambda(X_i,\beta_{n1}))
+%+ \sum_{i \in \{i:z_i=1,d_i=0,y_i=0\}} \log(1-\Lambda(X_i,\beta_{n1}))
+%\\ 
+%& & \qquad + \sum_{i \in \{i:z_i=1,d_i=0\}} \log (\Psi(n, W_i,
+%%\psi_c,\psi_a)) \\
+%& + & \sum_{i \in \{i:z_i=0,d_i=1,y_i=1\}} \log (\Lambda(X_i,\beta_{a0})) +
+%\sum_{i \in \{i:z_i=0,d_i=1,y_i=0\}} \log(1-\Lambda(X_i,\beta_{a0}))
+%\\ 
+%& & \qquad + \sum_{i
+%\in \{i:z_i=0,d_i=1\}} \log(\Psi(a, W_i, \psi_c,\psi_a))
+%\end{eqnarray*}
+
+%So,
+
+%\begin{eqnarray*}
+%\log(L_{obs}) & = & \sum_{i \in \{i:z_i=0,d_i=0\}} \left[
+%y_i (X_i\beta_{c0} - \log(1+e^{X_i\beta_{c0}})) +
+%(1-y_i) (-X_i\beta_{c0} - \log(1+e^{-X_i\beta_{c0}})) +
+%W_i \psi_c - \log (1+\sum_{\nu \in \{c,a\}} e^{W_i
+%\psi_{\nu}}) \right. \\
+%&& \\
+%&&\\
+%& & \qquad \left. + y_i \log(\Lambda(X_i,\beta_{n0})) +
+%(1-y_i)\log(1-\Lambda(X_i,\beta_{n0})) + \log(\Psi(n, W_i,
+%\psi_c,\psi_a)) \right] \\
+%& + &  \sum_{i \in \{i:z_i=1,d_i=1\}} \left[
+%y_i \log(\Lambda(X_i,\beta_{c1})) +
+%(1-y_i) \log(1-\Lambda(X_i,\beta_{c1})) + \log(\Psi(c, W_i,
+%\psi_c,\psi_a)) \right. \\ 
+%& & \qquad \left. + y_i \log(\Lambda(X_i,\beta_{a1})) +
+%(1-y_i) \log(1-\Lambda(X_i,\beta_{a1})) + \log(\Psi(a, W_i,
+%\psi_c,\psi_a)) \right] \\
+%& + &  \sum_{i \in \{i:z_i=1,d_i=0\}} \left[
+%y_i \log(\Lambda(X_i,\beta_{n1})) +
+%(1-y_i)\log(1-\Lambda(X_i,\beta_{n1})) + \log(\Psi(n, W_i,
+%\psi_c,\psi_a)) \right] \\
+%& + &  \sum_{i \in \{i:z_i=0,d_i=1\}} \left[
+%y_i \log(\Lambda(X_i,\beta_{a0})) +
+%(1-y_i) \log(1-\Lambda(X_i,\beta_{a0})) + \log(\Psi(a, W_i,
+%\psi_c,\psi_a)) \right]
+%\end{eqnarray*}
+
+
+%\begin{eqnarray*}
+%\log(L_{obs}) & = & \sum_{i \in \{i:z_i=0,d_i=0,y_i=1\}} \log\left[
+%\Lambda(X_i,\beta_{c0}) \Psi(c, W_i,
+%\psi_c,\psi_a) + \Lambda(X_i,\beta_{n0}) \Psi(n,
+%W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=0,d_i=0,y_i=0\}} \log\left[
+%(1-\Lambda(X_i,\beta_{c0}))  \Psi(c, W_i,
+%\psi_c,\psi_a) \right. \\
+%& + & \qquad \left. (1-\Lambda(X_i,\beta_{n0})
+%\Psi(n, W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=1\}} \log\left[
+%\Lambda(X_i,\beta_{c1}) \Psi(c, W_i,
+%\psi_c,\psi_a) + \Lambda(X_i,\beta_{a1}) \Psi(a,
+%W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=1,y_i=0\}} \log\left[
+%(1-\Lambda(X_i,\beta_{c1})) \Psi(c, W_i,
+%\psi_c,\psi_a) \right. \\
+%& + & \qquad \left. (1-\Lambda(X_i,\beta_{a1})) \Psi(a,
+%W_i, \psi_c,\psi_a) \right] \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=0,y_i=1\}} X_i\beta_{n1} - \log(1+
+%e^{X_i\beta_{n1}}) + \sum_{i \in \{i:z_i=1,d_i=0,y_i=0\}} -X_i\beta_{n1}
+%- \log(1+ e^{-X_i\beta_{n1}}) \\
+%& + & \sum_{i \in \{i:z_i=1,d_i=0\}} W_i\psi_n  - \log (1+ \sum_{\nu \in \{c,a\}} e^{W_i \psi_{\nu}}) \\
+%& + & \sum_{i \in \{i:z_i=0,d_i=1,y_i=1\}} X_i\beta_{a0} - \log(1+
+%e^{X_i\beta_{a0}}) + \sum_{i \in \{i:z_i=0,d_i=1,y_i=0\}} -X_i\beta_{a0}
+%- \log(1+ e^{-X_i\beta_{a0}}) \\
+%& + & \sum_{i \in \{i:z_i=0,d_i=1\}} W_i \psi_a - \log (1+\sum_{\nu \in
+%\{c,a\}} e^{W_i \psi_{\nu}})
+%\end{eqnarray*}
+
+
+\section{Priors}
+
+Convergence of the likelihood optimization algorithm is considerably
+faster when a weak but informative prior is included.  The strength of
+the prior is governed by the parameter $\eta$, where including the
+prior is equivalent to adding $\eta \times 12$ observations.  We
+typically use $\eta =2.5$, and thus add the equivalent of 30
+observations.  Thirty observations represents about 0.1\% of the size
+of our dataset.  The factor of 12 comes from the $3\times2\times2 =12$
+possible combinations of type, assignment, and outcome.  Our prior, in
+other words, calculates an additional likelihood contribution using
+each observation's covariate profile in conjunction with the
+type/assignment/outcome combinations.
+
+We express the prior
+
+\begin{eqnarray*}
+p(\beta, \psi) & = & \prod_{i=1}^N \prod_{t \in \{c,n,a\}}
+\prod_{z=0,1} \prod_{y=0,1} \left[ \Lambda(X_i,\beta_{tz})^{y}
+(1-\Lambda(X_i,\beta_{tz}))^{1-y} \Psi(t, W_i,
+\psi_c,\psi_a)\right]^{\frac{\eta}{N}}
+\end{eqnarray*}
+
+The log prior is thus
+
+\begin{eqnarray*}
+\log (p(\beta, \psi)) & = & \sum_{i=1}^N \sum_{t \in \{c,n,a\}}
+\sum_{z=0,1} \sum_{y=0,1} \frac{
+\eta}{N} \left[ y \log(\Lambda(X_i,\beta_{tz})) + (1-y) \log(1-\Lambda(X_i,\beta_{tz})) \right. \\ 
+&  & \qquad \qquad \left. + \log (\Psi(t, W_i, \psi_c,\psi_a)) \right]
+\end{eqnarray*}
+
+Splitting the terms into $y=1$ and $y=0$ parts:
+
+\begin{eqnarray*}
+\log (p(\beta, \psi)) & = & \sum_{i=1}^N \sum_{t \in \{c,n,a\}}
+\sum_{z=0,1} \frac{\eta}{N} \left[ \log (\Lambda(X_i,\beta_{tz}))
++ \log (\Psi(t, W_i, \psi_c,\psi_a)) \right. \\
+&  & \qquad \qquad \left. + \log(1-\Lambda(X_i,\beta_{tz})) + \log
+(\Psi(t, W_i, \psi_c,\psi_a)) \right] \\
+ & = & \sum_{i=1}^N \sum_{t \in \{c,n,a\}}
+\sum_{z=0,1} \frac{\eta}{N} \left[ \log (\Lambda(X_i,\beta_{tz}))
++ 2 \log (\Psi(t, W_i, \psi_c,\psi_a)) +
+\log(1-\Lambda(X_i,\beta_{tz})) \right]
+\end{eqnarray*}
+
+We then use the same substitutions as above in the computational
+implementation. 
+
+%\begin{eqnarray*}
+%\log (p(\beta, \psi)) & = & \sum_{i=1}^N \sum_{t \in \{c,n,a\}}
+%\sum_{z=0,1} \frac{2.5}{N} \left[ X_i\beta_{tz} - \log(1+
+%e^{X_i\beta_{tz}}) - X_i\beta_{tz} - \log(1+
+%e^{-X_i\beta_{tz}}) \right. \\
+%& + & \left. 2 \left( W_i \psi_t - \log (1+ \sum_{\nu \in
+%\{c,a\}} e^{W_i \psi_{\nu}}) \right) \right] \\
+%& = & \sum_{i=1}^N \sum_{t \in \{c,n,a\}}
+%\sum_{z=0,1} \frac{2.5}{N} \left[- \log(1+ e^{X_i\beta_{tz}}) -
+%\log(1+ e^{-X_i\beta_{tz}}) + 2 \left(W_i \psi_t - \log (1+
+%\sum_{\nu \in \{c,a\}} e^{W_i \psi_{\nu}}) \right) \right] 
+%\end{eqnarray*}
+
+\end{document}

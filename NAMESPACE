@@ -1,0 +1,24 @@
+useDynLib(experiment)
+
+importFrom(MASS, mvrnorm)
+
+export(NoncompLI, 
+       NoncompMAR,
+       NoncompLIMixed,
+       NIbprobit,
+       NIbprobitMixed,
+       NInocov,
+       ATEbounds,
+       ATEcluster,
+       ATEnocov,
+       ATEtrunc,
+       CACEnocov,
+       CACEcov,
+       CACEcluster,
+       MARnocov,
+       randomize)
+
+S3method(print, randomize)
+S3method(print, summary.NoncompMAR)
+S3method(summary, NoncompMAR)
+
